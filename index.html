@@ -216,7 +216,34 @@ function chopFromCenter(){const r=lookRay();const hit=r.intersectObjects(trees,t
 let mouseHeld=false;
 renderer.domElement.addEventListener('pointerdown',e=>{if(!started||e.button!==0)return;mouseHeld=true;if(buildMode){placeBlock();return}if(document.pointerLockElement===renderer.domElement){const r=lookRay();const hit=r.intersectObjects(trees,true).find(h=>{let o=h.object;while(o.parent&&o.parent!==scene)o=o.parent;return o.userData.type==='tree'});if(hit){let o=hit.object;while(o.parent&&o.parent!==scene)o=o.parent;chopTree=o;chopProgress=0}}else{const r=lookRay();const hit=r.intersectObjects(trees,true).find(h=>{let o=h.object;while(o.parent&&o.parent!==scene)o=o.parent;return o.userData.type==='tree'});if(hit){let o=hit.object;while(o.parent&&o.parent!==scene)o=o.parent;chopTree=o;chopProgress=0}}});
 addEventListener('pointerup',()=>{mouseHeld=false;chopTree=null;chopProgress=0;updateTreeBar()});
-function placeBlock(){if(!started||!buildMode)return;if(blocks<=0){msg('Du hast keine Baublöcke! Baue erst Holz ab.');return}raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObject(ground);if(!hits.length){msg('Ziele auf den Boden, um einen Block zu platzieren.');return}const p=hits[0].point;const x=Math.round(p.x),z=Math.round(p.z);if(Math.hypot(x-camera.position.x,z-camera.position.z)>7){msg('Zu weit weg! Geh näher an die Baustelle.');return}if(Math.abs(x)>54||Math.abs(z)>54){msg('Hier kannst du nicht bauen.');return}if(Math.hypot(x-camera.position.x,z-camera.position.z)<1.25){msg('Nicht direkt auf deinen Füßen bauen!');return}if(collidesAt(x,z)){msg('Hier ist kein Platz – dort steht schon etwas.');return}const mat=team==='Römer'?mats.stone:mats.block;const b=box(x,.5,z,1,1,1,mat);blockMeshes.push(b);blocks--;updateHud();msg('Block platziert! Noch '+blocks+' Baublöcke.')}
+function placeBlock(){
+ if(!started||!buildMode)return;
+ if(blocks<=0){msg('Du hast keine Baublöcke! Baue erst Holz ab.');return}
+ raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+ // Zuerst platzierte Blöcke prüfen: Ein Block kann auf der Oberseite eines anderen stehen.
+ const blockHits=raycaster.intersectObjects(blockMeshes,false);
+ let x,z,y=.5,stacking=false;
+ if(blockHits.length && blockHits[0].face){
+  const hit=blockHits[0],normal=hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+  if(normal.y>.5){
+   x=Math.round(hit.object.position.x);z=Math.round(hit.object.position.z);
+   y=hit.object.position.y+1;stacking=true;
+  }
+ }
+ if(!stacking){
+  const hits=raycaster.intersectObject(ground);
+  if(!hits.length){msg('Ziele auf den Boden oder auf die Oberseite eines platzierten Blocks.');return}
+  const p=hits[0].point;x=Math.round(p.x);z=Math.round(p.z);
+ }
+ if(Math.hypot(x-camera.position.x,z-camera.position.z)>7){msg('Zu weit weg! Geh näher an die Baustelle.');return}
+ if(Math.abs(x)>54||Math.abs(z)>54||y>12){msg('Hier kannst du nicht bauen.');return}
+ if(Math.hypot(x-camera.position.x,z-camera.position.z)<1.25){msg('Nicht direkt auf deinen Füßen bauen!');return}
+ if(stacking){
+  if(blockMeshes.some(b=>Math.abs(b.position.x-x)<.1&&Math.abs(b.position.y-y)<.1&&Math.abs(b.position.z-z)<.1)){msg('Hier steht schon ein Block.');return}
+ }else if(collidesAt(x,z)){msg('Hier ist kein Platz – dort steht schon etwas.');return}
+ const mat=team==='Römer'?mats.stone:mats.block;const b=box(x,y,z,1,1,1,mat);
+ blockMeshes.push(b);blocks--;updateHud();msg(stacking?'Block oben drauf platziert! Noch '+blocks+' Baublöcke.':'Block platziert! Noch '+blocks+' Baublöcke.');
+}
 $('placebtn').onclick=placeBlock;
 $('collect').onclick=()=>{if(!started)return;chopFromCenter()};
 $('help').onclick=()=>msg('PC: WASD laufen, Maus schauen, Linksklick halten zum Holzsammeln, B zum Bauen. iPad: linker Joystick zum Laufen, rechts über das Bild ziehen zum Umschauen, SPRUNG und AKTION rechts unten.');
