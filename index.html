@@ -18,8 +18,32 @@ button{font-weight:750;cursor:pointer;background:#e6bd72;color:#2a2116}.teams{di
 #tools button{font-size:12px;text-align:left;background:#172521e8;color:#fff0d3;border:1px solid #ffffff35;padding:10px}
 #message{position:absolute;top:100px;left:50%;transform:translateX(-50%);display:none;padding:11px 14px;text-align:center;max-width:90vw;font-size:13px}
 #quiz{position:absolute;z-index:6;top:50%;left:50%;transform:translate(-50%,-50%);display:none;width:min(92vw,420px);padding:18px}#quiz button{display:block;width:100%;margin-top:7px;text-align:left}
-#mobile{display:none;position:absolute;bottom:14px;left:12px;gap:5px;flex-direction:column;align-items:center}
-#mobile .line{display:flex;gap:5px}#mobile button{width:45px;height:45px;padding:0;background:#172521e8;color:white;border:1px solid #ffffff40;touch-action:none}
+#mobile{display:none}
+#touchControls{display:none;position:absolute;inset:0;z-index:4;pointer-events:none;touch-action:none}
+#joyBase{position:absolute;left:24px;bottom:24px;width:142px;height:142px;border-radius:50%;background:#17252188;border:2px solid #ffffff88;pointer-events:auto;touch-action:none}
+#joyKnob{position:absolute;left:43px;top:43px;width:52px;height:52px;border-radius:50%;background:#e6bd72dd;border:2px solid #fff4ce;box-shadow:0 3px 12px #0008;pointer-events:none}
+#lookPad{position:absolute;left:38%;right:0;top:18%;bottom:20%;pointer-events:auto;touch-action:none}
+#touchButtons{position:absolute;right:18px;bottom:22px;display:flex;flex-direction:column;gap:12px;align-items:flex-end;pointer-events:none}
+#touchButtons button{width:68px;height:68px;border-radius:50%;padding:5px;background:#172521dd;color:white;border:2px solid #ffffff88;font-size:12px;pointer-events:auto;touch-action:none;box-shadow:0 3px 12px #0008}
+#touchButtons #touchJump{background:#d4a16a;color:#241b12}
+#touchButtons #touchAction{background:#557b3e}
+@media(max-width:1100px),(pointer:coarse){
+ #touchControls{display:block}#mobile{display:none}
+ #tools{top:auto;bottom:12px;right:12px;width:138px}
+ #tools button{padding:8px;font-size:11px}
+ #hud{top:6px;left:6px;right:6px}.hudbox{padding:7px;font-size:11px}
+ #placebtn{bottom:12px;left:auto;right:164px;transform:none;width:138px;padding:10px;font-size:12px}
+ #treebar{bottom:170px;width:min(320px,72vw)}#footer{display:none}
+}
+@media(max-width:700px){
+ #tools{top:8px;bottom:auto;right:8px;width:128px}
+ #tools button{padding:7px;font-size:10px}
+ #placebtn{bottom:12px;right:164px;width:120px}
+ #joyBase{width:124px;height:124px;left:14px;bottom:14px}
+ #joyKnob{left:36px;top:36px;width:48px;height:48px}
+ #touchButtons{right:10px;bottom:12px}
+ #touchButtons button{width:60px;height:60px}
+}
 #placebtn{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:none;padding:14px 18px;background:#e6bd72;border:2px solid #fff4ce}
 #treebar{position:absolute;display:none;bottom:35px;left:50%;transform:translateX(-50%);width:min(360px,78vw);padding:10px 13px;background:rgba(25,30,23,.94);border:1px solid #d8c18a88;pointer-events:none}
 .treebar-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-bottom:7px}.treebar-track{height:12px;border-radius:8px;background:#33291e;overflow:hidden;border:1px solid #ffffff44}.treebar-track>div{height:100%;width:100%;background:linear-gradient(90deg,#e0b849,#85c65d);transition:width .06s linear}.treebar-track>div.low{background:linear-gradient(90deg,#d84c36,#f1b34a)}#treetime{font-size:11px;color:#e8dfc8;margin-top:5px;text-align:center}
@@ -55,9 +79,14 @@ button{font-weight:750;cursor:pointer;background:#e6bd72;color:#2a2116}.teams{di
  <div id="crosshair"></div>
  <div id="treebar" class="panel"><div class="treebar-top"><span>🌳 Baum abbauen</span><b id="treehp">100 %</b></div><div class="treebar-track"><div id="treefill"></div></div><div id="treetime">Linksklick gedrückt halten</div></div>
  <button id="placebtn">🧱 Block platzieren</button>
- <div id="mobile">
-  <button data-move="forward">▲</button><div class="line"><button data-move="left">◀</button><button data-move="back">▼</button><button data-move="right">▶</button></div>
-  <div class="line"><button data-look="left">↶</button><button data-look="right">↷</button></div>
+ <div id="mobile"></div>
+ <div id="touchControls">
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <div id="lookPad" aria-label="Zum Umschauen ziehen"></div>
+  <div id="touchButtons">
+   <button id="touchJump">⬆<br>SPRUNG</button>
+   <button id="touchAction">✋<br>AKTION</button>
+  </div>
  </div>
  <div id="footer">WASD bewegen · Maus schauen · Linksklick halten: Holz abbauen · B: Baublöcke platzieren</div>
 </div>
@@ -127,7 +156,7 @@ const flowerColors=[0xf0d65b,0xe78c72,0xe6e2cf,0xbba2df];
 for(let i=0;i<145;i++){const x=(Math.random()-.5)*75,z=(Math.random()-.5)*75;if(Math.abs(x)<3&&Math.abs(z)<12)continue;box(x,.11,z,.035,.22,.035,new THREE.MeshLambertMaterial({color:0x46783a}));const bloom=new THREE.Mesh(new THREE.SphereGeometry(.075,6,5),new THREE.MeshLambertMaterial({color:flowerColors[Math.floor(Math.random()*flowerColors.length)]}));bloom.position.set(x,.25,z);scene.add(bloom)}
 for(let i=0;i<70;i++){const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.15+Math.random()*.3,0),new THREE.MeshLambertMaterial({color:[0x85867c,0xa6a08f,0x716f66][i%3]}));rock.position.set((Math.random()-.5)*80,.08,(Math.random()-.5)*80);rock.scale.y=.5+Math.random()*.6;rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true;scene.add(rock)}
 const raycaster=new THREE.Raycaster();raycaster.far=7;
-const player={x:0,z:5,yaw:0,pitch:0};let started=false,team='',playerName='Abenteurer',wood=0,blocks=0,buildMode=false,chopTree=null,chopProgress=0,keys={},touch={forward:false,back:false,left:false,right:false},lookTouch={left:false,right:false},last=0,toastTimer;
+const player={x:0,z:5,yaw:0,pitch:0};let started=false,team='',playerName='Abenteurer',wood=0,blocks=0,buildMode=false,chopTree=null,chopProgress=0,keys={},touch={forward:false,back:false,left:false,right:false},lookTouch={left:false,right:false},joy={x:0,y:0},jumpStart=0,last=0,toastTimer;
 const blockMeshes=[];let preview=null;
 // Solide Hindernisse: Spieler kann nicht durch Bäume, Hütten oder gesetzte Blöcke laufen.
 function collidesAt(x,z){
@@ -163,9 +192,23 @@ document.addEventListener('pointerlockchange',()=>{});
 document.addEventListener('mousemove',e=>{if(started&&document.pointerLockElement===renderer.domElement){player.yaw-=e.movementX*.0024;player.pitch-=e.movementY*.0022;player.pitch=Math.max(-1.25,Math.min(1.25,player.pitch))}});
 document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if(e.key.toLowerCase()==='b'&&started)toggleBuild();if(e.key.toLowerCase()==='e'&&started)chopFromCenter()});
 document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-addEventListener('blur',()=>{keys={};touch={forward:false,back:false,left:false,right:false};lookTouch={left:false,right:false};mouseHeld=false;chopTree=null;updateTreeBar()});
+addEventListener('blur',()=>{keys={};touch={forward:false,back:false,left:false,right:false};lookTouch={left:false,right:false};joy={x:0,y:0};mouseHeld=false;chopTree=null;updateTreeBar()});
 document.querySelectorAll('[data-move]').forEach(b=>{const k=b.dataset.move;const down=e=>{e.preventDefault();touch[k]=true},up=e=>{e.preventDefault();touch[k]=false};b.addEventListener('pointerdown',down);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,up))});
 document.querySelectorAll('[data-look]').forEach(b=>{const k=b.dataset.look;const down=e=>{e.preventDefault();lookTouch[k]=true},up=e=>{e.preventDefault();lookTouch[k]=false};b.addEventListener('pointerdown',down);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,up))});
+// Virtueller iPad-Joystick links und Kamera-Steuerung durch Ziehen rechts.
+const joyBase=$('joyBase'),joyKnob=$('joyKnob'),lookPad=$('lookPad');
+let joyPointer=null,lookPointer=null,lastLookX=0,lastLookY=0;
+function resetJoy(){joy={x:0,y:0};joyKnob.style.transform='translate(0px,0px)';joyPointer=null}
+function moveJoy(e){const r=joyBase.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.34,len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max}joy.x=dx/max;joy.y=dy/max;joyKnob.style.transform=`translate(${dx}px,${dy}px)`}
+joyBase.addEventListener('pointerdown',e=>{if(!started)return;e.preventDefault();joyPointer=e.pointerId;joyBase.setPointerCapture(e.pointerId);moveJoy(e)});
+joyBase.addEventListener('pointermove',e=>{if(e.pointerId===joyPointer)moveJoy(e)});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joyBase.addEventListener(ev,e=>{if(e.pointerId===joyPointer)resetJoy()}));
+lookPad.addEventListener('pointerdown',e=>{if(!started||lookPointer!==null)return;e.preventDefault();lookPointer=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookPad.setPointerCapture(e.pointerId)});
+lookPad.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer)return;e.preventDefault();const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;player.yaw-=dx*.006;player.pitch=Math.max(-1.25,Math.min(1.25,player.pitch-dy*.004))});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>lookPad.addEventListener(ev,e=>{if(e.pointerId===lookPointer)lookPointer=null}));
+$('touchJump').addEventListener('pointerdown',e=>{if(!started)return;e.preventDefault();jumpStart=performance.now()});
+$('touchAction').addEventListener('pointerdown',e=>{if(!started)return;e.preventDefault();if(buildMode){placeBlock();return}chopFromCenter();if(chopTree)mouseHeld=true});
+
 function toggleBuild(){buildMode=!buildMode;if(buildMode){if(!preview){preview=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),mats.preview);scene.add(preview)}preview.visible=true}else if(preview)preview.visible=false;updateHud();msg(buildMode?'Baumodus: Klicke auf den Boden, um einen Block zu platzieren.':'Erkundungsmodus.')}
 $('buildmode').onclick=toggleBuild;
 function lookRay(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);return raycaster}
@@ -176,14 +219,14 @@ addEventListener('pointerup',()=>{mouseHeld=false;chopTree=null;chopProgress=0;u
 function placeBlock(){if(!started||!buildMode)return;if(blocks<=0){msg('Du hast keine Baublöcke! Baue erst Holz ab.');return}raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObject(ground);if(!hits.length){msg('Ziele auf den Boden, um einen Block zu platzieren.');return}const p=hits[0].point;const x=Math.round(p.x),z=Math.round(p.z);if(Math.hypot(x-camera.position.x,z-camera.position.z)>7){msg('Zu weit weg! Geh näher an die Baustelle.');return}if(Math.abs(x)>54||Math.abs(z)>54){msg('Hier kannst du nicht bauen.');return}if(Math.hypot(x-camera.position.x,z-camera.position.z)<1.25){msg('Nicht direkt auf deinen Füßen bauen!');return}if(collidesAt(x,z)){msg('Hier ist kein Platz – dort steht schon etwas.');return}const mat=team==='Römer'?mats.stone:mats.block;const b=box(x,.5,z,1,1,1,mat);blockMeshes.push(b);blocks--;updateHud();msg('Block platziert! Noch '+blocks+' Baublöcke.')}
 $('placebtn').onclick=placeBlock;
 $('collect').onclick=()=>{if(!started)return;chopFromCenter()};
-$('help').onclick=()=>msg('WASD/Pfeiltasten laufen · Maus schauen (klicke zuerst ins Spiel) · Linksklick halten: Baum abbauen · Holz ergibt 3 Baublöcke · B aktiviert Platzieren · E anvisierten Baum auswählen.');
+$('help').onclick=()=>msg('PC: WASD laufen, Maus schauen, Linksklick halten zum Holzsammeln, B zum Bauen. iPad: linker Joystick zum Laufen, rechts über das Bild ziehen zum Umschauen, SPRUNG und AKTION rechts unten.');
 const questions=[
 {q:'Wann lebten die Römer der Antike?',a:['Vor allem in der Antike','Nur im Mittelalter','Erst im 20. Jahrhundert'],c:0,info:'Rom entwickelte sich über viele Jahrhunderte. Das Weströmische Reich endete 476 n. Chr.'},
 {q:'Wann lebten germanische Gruppen in Europa?',a:['Nur im Jahr 1900','Schon in der Antike, auch zur Römerzeit','Erst nach 2000'],c:1,info:'Viele germanische Gruppen lebten in Mittel- und Nordeuropa und standen mit Rom in Kontakt.'},
 {q:'Was war der Limes?',a:['Eine römische Grenzanlage','Ein germanischer Gott','Ein römisches Schiff'],c:0,info:'Der Limes war ein System römischer Grenzbefestigungen und Kontrollanlagen.'},
 {q:'Wer war Arminius?',a:['Ein römischer Kaiser','Ein cheruskischer Anführer','Ein ägyptischer Pharao'],c:1,info:'Arminius war ein cheruskischer Anführer, der im Jahr 9 n. Chr. gegen römische Truppen kämpfte.'}];
 $('quizbtn').onclick=()=>{const q=questions[Math.floor(Math.random()*questions.length)],el=$('quiz');el.innerHTML='<h2>📜 Geschichtsfrage</h2><p>'+q.q+'</p>';q.a.forEach((a,i)=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>{el.innerHTML='<h2>'+(i===q.c?'Richtig! ✨':'Gute Übung!')+'</h2><p>'+q.info+'</p><button id="close">Zurück zum Spiel</button>';$('close').onclick=()=>el.style.display='none'};el.appendChild(b)});el.style.display='block'};
-function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000||0);last=now;if(started){let f=0,s=0;if(keys.w||keys.arrowup||touch.forward)f+=1;if(keys.s||keys.arrowdown||touch.back)f-=1;if(keys.a||keys.arrowleft||touch.left)s-=1;if(keys.d||keys.arrowright||touch.right)s+=1;if(lookTouch.left)player.yaw+=dt*1.8;if(lookTouch.right)player.yaw-=dt*1.8;if(f||s){const len=Math.hypot(f,s),speed=dt*5;const dx=(-Math.sin(player.yaw)*f+Math.cos(player.yaw)*s)/len*speed;const dz=(-Math.cos(player.yaw)*f-Math.sin(player.yaw)*s)/len*speed;tryMove(dx,dz)}camera.position.y=1.7+Math.sin(now*.009)*((f||s)?.035:0);camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
+function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000||0);last=now;if(started){let f=0,s=0;if(keys.w||keys.arrowup||touch.forward)f+=1;if(keys.s||keys.arrowdown||touch.back)f-=1;if(keys.a||keys.arrowleft||touch.left)s-=1;if(keys.d||keys.arrowright||touch.right)s+=1;f-=joy.y;s+=joy.x;if(lookTouch.left)player.yaw+=dt*1.8;if(lookTouch.right)player.yaw-=dt*1.8;if(f||s){const len=Math.hypot(f,s),speed=dt*5;const dx=(-Math.sin(player.yaw)*f+Math.cos(player.yaw)*s)/len*speed;const dz=(-Math.cos(player.yaw)*f-Math.sin(player.yaw)*s)/len*speed;tryMove(dx,dz)}const jumpAge=now-jumpStart;const jumpHeight=jumpStart&&jumpAge<560?Math.sin(jumpAge/560*Math.PI)*.9:0;if(jumpAge>=560)jumpStart=0;camera.position.y=1.7+jumpHeight+Math.sin(now*.009)*((f||s)?.035:0);camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
  if(chopTree&&mouseHeld){chopProgress+=dt*.48;updateTreeBar();if(chopProgress>=1){scene.remove(chopTree);const ti=trees.indexOf(chopTree);if(ti>=0)trees.splice(ti,1);chopTree=null;chopProgress=0;mouseHeld=false;wood+=3;blocks+=3;updateHud();updateTreeBar();msg('🌳 Baum abgebaut! +3 Holz und +3 Baublöcke.')}}else updateTreeBar();
  if(preview&&preview.visible){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hit=raycaster.intersectObject(ground);if(hit.length){preview.position.set(Math.round(hit[0].point.x),.5,Math.round(hit[0].point.z));preview.visible=true}else preview.visible=false}
  }
