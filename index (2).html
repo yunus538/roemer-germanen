@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Römer & Germanen V8 – Bugfix-Fassung</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8fc8e0;font-family:system-ui,Arial,sans-serif;color:#fff0d3}
+#game{position:fixed;inset:0}canvas{display:block;width:100%;height:100%;touch-action:none}
+.panel{background:linear-gradient(145deg,rgba(36,57,43,.96),rgba(22,29,28,.94));border:1px solid #d5c08a55;border-radius:14px;box-shadow:0 8px 30px #0004;backdrop-filter:blur(8px)}
+#menu{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,440px);padding:22px;text-align:center}
+h1{margin:5px 0 8px;font-size:clamp(25px,5vw,35px)}p{font-size:14px;line-height:1.45;color:#e6e0d0}
+input,button{font:inherit;border:0;border-radius:9px;padding:12px}input{width:100%;margin:8px 0;background:#fff5df;color:#222}
+button{font-weight:750;cursor:pointer;background:#e6bd72;color:#2a2116}.teams{display:flex;gap:8px}.teams button{flex:1;min-height:50px}#roman{background:#d4a16a}#german{background:#a0c982}
+#hud{position:absolute;top:10px;left:10px;right:10px;display:none;justify-content:space-between;gap:8px;pointer-events:none}
+.hudbox{background:#172521e8;border:1px solid #ffffff30;border-radius:11px;padding:9px 12px;max-width:48%;font-size:13px}.muted{font-size:11px;color:#d8d5c8;margin-top:3px}
+#tools{position:absolute;top:100px;right:10px;display:none;flex-direction:column;gap:7px;width:min(190px,44vw)}
+#tools button{font-size:12px;text-align:left;background:#172521e8;color:#fff0d3;border:1px solid #ffffff35;padding:10px}
+#message{position:absolute;top:100px;left:50%;transform:translateX(-50%);display:none;padding:11px 14px;text-align:center;max-width:90vw;font-size:13px}
+#quiz{position:absolute;z-index:6;top:50%;left:50%;transform:translate(-50%,-50%);display:none;width:min(92vw,420px);padding:18px}#quiz button{display:block;width:100%;margin-top:7px;text-align:left}
+#mobile{display:none;position:absolute;bottom:14px;left:12px;gap:5px;flex-direction:column;align-items:center}
+#mobile .line{display:flex;gap:5px}#mobile button{width:45px;height:45px;padding:0;background:#172521e8;color:white;border:1px solid #ffffff40;touch-action:none}
+#placebtn{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:none;padding:14px 18px;background:#e6bd72;border:2px solid #fff4ce}
+#treebar{position:absolute;display:none;bottom:35px;left:50%;transform:translateX(-50%);width:min(360px,78vw);padding:10px 13px;background:rgba(25,30,23,.94);border:1px solid #d8c18a88;pointer-events:none}
+.treebar-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-bottom:7px}.treebar-track{height:12px;border-radius:8px;background:#33291e;overflow:hidden;border:1px solid #ffffff44}.treebar-track>div{height:100%;width:100%;background:linear-gradient(90deg,#e0b849,#85c65d);transition:width .06s linear}.treebar-track>div.low{background:linear-gradient(90deg,#d84c36,#f1b34a)}#treetime{font-size:11px;color:#e8dfc8;margin-top:5px;text-align:center}
+#footer{position:absolute;bottom:5px;left:8px;right:8px;text-align:center;font-size:10px;color:white;text-shadow:0 2px 4px #000;pointer-events:none}
+#crosshair{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:18px;height:18px;pointer-events:none}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#fff9d8;box-shadow:0 0 3px #000}
+#crosshair:before{width:2px;height:18px;left:8px}#crosshair:after{height:2px;width:18px;top:8px}
+@media(max-width:700px){#treebar{bottom:170px;width:min(320px,72vw)}#mobile{display:flex}#tools{top:auto;bottom:80px;right:8px;width:145px}#tools button{padding:8px;font-size:11px}#hud{top:6px;left:6px;right:6px}.hudbox{padding:7px;font-size:11px}#placebtn{bottom:14px;left:auto;right:8px;transform:none;width:145px;padding:10px;font-size:12px}#footer{bottom:2px}}
+</style>
+</head>
+<body>
+<div id="game">
+ <div id="menu" class="panel">
+  <div style="letter-spacing:.16em;font-size:11px;color:#e6bd72;font-weight:800">GESCHICHTE · ANTIKE · ABENTEUER</div>
+  <h1>Römer gegen Germanen</h1>
+  <p>V8 · Zwei Lager, Grenzweg und Bugfixes<br>Wähle dein Volk: Römer starten im befestigten Kastell, Germanen im Wald-Dorf. Dazwischen liegen ein langer Weg, Brücke, Außenposten und viele Strukturen.</p>
+  <input id="playername" maxlength="16" placeholder="Dein Spielername">
+  <div class="teams"><button id="roman">🏛️ Römer</button><button id="german">🌲 Germanen</button></div>
+  <p style="font-size:12px">3D-Abenteuer · Römer und Germanen · Lager selbst bauen</p>
+ </div>
+ <div id="hud">
+  <div class="hudbox"><b id="who">Abenteurer</b><div id="team" class="muted"></div><div class="muted">Einzelspieler · Offline</div></div>
+  <div class="hudbox"><b id="wood">🪵 Holz: 0</b><div id="blocks" class="muted">Baublöcke: 0</div><div id="mode" class="muted">Modus: Erkunden</div></div>
+ </div>
+ <div id="tools">
+  <button id="collect">🪓 Baum abbauen (Linksklick halten)</button>
+  <button id="buildmode">🧱 Baublöcke platzieren: AUS</button>
+  <button id="quizbtn">📜 Geschichtsfrage</button>
+  <button id="help">❔ Steuerung</button>
+ </div>
+ <div id="message" class="panel"></div>
+ <div id="quiz" class="panel"></div>
+ <div id="crosshair"></div>
+ <div id="treebar" class="panel"><div class="treebar-top"><span>🌳 Baum abbauen</span><b id="treehp">100 %</b></div><div class="treebar-track"><div id="treefill"></div></div><div id="treetime">Linksklick gedrückt halten</div></div>
+ <button id="placebtn">🧱 Block platzieren</button>
+ <div id="mobile">
+  <button data-move="forward">▲</button><div class="line"><button data-move="left">◀</button><button data-move="back">▼</button><button data-move="right">▶</button></div>
+  <div class="line"><button data-look="left">↶</button><button data-look="right">↷</button></div>
+ </div>
+ <div id="footer">WASD bewegen · Maus schauen · Linksklick halten: Holz abbauen · B: Baublöcke platzieren</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),root=$('game');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x8bb8ce);scene.fog=new THREE.Fog(0x8bb8ce,30,92);
+const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,150);camera.rotation.order='YXZ';camera.position.set(0,1.7,35);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=0.82;root.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xd9f1ff,0x536344,0.72));
+const sun=new THREE.DirectionalLight(0xffe4b0,0.85);sun.position.set(-18,30,12);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+function speckleTexture(base,flecks,count=1800,size=256){const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');x.fillStyle=base;x.fillRect(0,0,size,size);
+// Tiny blades, mottled earth and soft patches make the ground read as textured terrain.
+for(let i=0;i<count;i++){x.globalAlpha=.10+Math.random()*.35;x.fillStyle=flecks[Math.floor(Math.random()*flecks.length)];const w=1+Math.random()*5,h=1+Math.random()*4;x.fillRect(Math.random()*size,Math.random()*size,w,h)}
+for(let i=0;i<520;i++){x.globalAlpha=.12+Math.random()*.22;x.strokeStyle=flecks[Math.floor(Math.random()*flecks.length)];x.lineWidth=.5+Math.random()*1.2;const xx=Math.random()*size,yy=Math.random()*size;x.beginPath();x.moveTo(xx,yy);x.lineTo(xx+(Math.random()-.5)*5,yy-1-Math.random()*7);x.stroke()}
+x.globalAlpha=1;const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t}
+function texmat(base,flecks,repeat=4){const map=speckleTexture(base,flecks);map.repeat.set(repeat,repeat);return new THREE.MeshLambertMaterial({map})}
+const mats={grass:texmat('#557b3e',['#72964b','#355d30','#91a954'],7),grass2:texmat('#709747',['#92b45a','#47723a','#b3bd70'],3),dirt:texmat('#a9895d',['#d1b27b','#6d5538','#c4a16d'],5),wood:texmat('#80502e',['#b7834b','#4c2e20','#d0a064'],2),leaves:new THREE.MeshLambertMaterial({color:0x367342}),leaves2:new THREE.MeshLambertMaterial({color:0x619747}),leaves3:new THREE.MeshLambertMaterial({color:0x2b5e3d}),roman:texmat('#a83f32',['#d46b48','#742b28','#e2a15d'],2),stone:texmat('#aaa99d',['#ded7bf','#777c7a','#c6bfae'],2),german:texmat('#647f42',['#91a95a','#3b5e34'],2),roof:texmat('#67452e',['#996541','#432c24','#b17a4b'],2),block:texmat('#a7794b',['#d1a36a','#70482d'],1),preview:new THREE.MeshBasicMaterial({color:0xffe27a,transparent:true,opacity:.42})};
+function box(x,y,z,sx,sy,sz,material,group=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;group.add(m);return m}
+function treeMesh(x,z){const g=new THREE.Group();g.position.set(x,0,z);const tall=1.7+Math.random()*.9;box(0,tall/2,0,.32+Math.random()*.15,tall,.32+Math.random()*.15,mats.wood,g);for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.ConeGeometry(1.25-i*.2,1.9,7),[mats.leaves,mats.leaves2,mats.leaves3][Math.floor(Math.random()*3)]);c.position.y=tall*.7+i*.55;c.rotation.y=Math.random()*1.5;c.castShadow=true;g.add(c)}for(let i=0;i<3;i++){const b=box((Math.random()-.5)*.55,.22,(Math.random()-.5)*.55,.16,.55,.16,mats.wood,g);b.rotation.z=(Math.random()-.5)*.5}g.userData={type:'tree',hp:100};scene.add(g);return g}
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(120,120,1,1),mats.grass);ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
+// Layered grass patches, visible grass blades and a winding dirt road.
+for(let i=0;i<430;i++){let x=(Math.random()-.5)*95,z=(Math.random()-.5)*95;if(Math.abs(x)<3&&Math.abs(z)<12)continue;if(Math.abs(z+29)<3)continue;const patch=box(x,-.035,z,Math.random()*2.0+.35,.018,Math.random()*2.0+.35,Math.random()>.42?mats.grass2:mats.grass);patch.rotation.y=Math.random()*Math.PI}
+// Thousands of tiny instanced blades add real 3D texture without creating thousands of draw calls.
+const bladeGeo=new THREE.ConeGeometry(.035,.22,3);bladeGeo.translate(0,.11,0);const bladeMat=new THREE.MeshLambertMaterial({color:0xc7e0a1});const bladeCount=2300;const blades=new THREE.InstancedMesh(bladeGeo,bladeMat,bladeCount);const dummy=new THREE.Object3D();const bladePalette=[0x477c38,0x5b9141,0x76a94b,0x8cb957,0x3e6f34,0xa2bd5b];let bladeN=0;
+for(let i=0;i<bladeCount*2&&bladeN<bladeCount;i++){const x=(Math.random()-.5)*94,z=(Math.random()-.5)*94;if(Math.abs(x)<2.4&&Math.abs(z+9)<38)continue;if(Math.abs(z+29)<3.5)continue;if(Math.abs(x)<4&&z>-22&&z<-8)continue;dummy.position.set(x,-.03,z);dummy.rotation.set(0,Math.random()*Math.PI,0);const h=.45+Math.random()*1.15;dummy.scale.set(.65+Math.random()*.8,h,.65+Math.random()*.8);dummy.updateMatrix();blades.setMatrixAt(bladeN,dummy.matrix);blades.setColorAt(bladeN,new THREE.Color(bladePalette[Math.floor(Math.random()*bladePalette.length)]));bladeN++}
+blades.count=bladeN;blades.instanceMatrix.needsUpdate=true;if(blades.instanceColor)blades.instanceColor.needsUpdate=true;blades.castShadow=false;blades.receiveShadow=true;scene.add(blades);
+// Small earthy clearings break up the grass naturally.
+for(let i=0;i<70;i++){const x=(Math.random()-.5)*75,z=(Math.random()-.5)*75;if(Math.abs(x)<3&&Math.abs(z)<12)continue;const d=new THREE.Mesh(new THREE.CircleGeometry(.35+Math.random()*.9,7),new THREE.MeshLambertMaterial({color:[0x9b8055,0x7f6c48,0x668a45][i%3],transparent:true,opacity:.28,depthWrite:false}));d.rotation.x=-Math.PI/2;d.rotation.z=Math.random()*Math.PI;d.position.set(x,-.025,z);scene.add(d)}
+const road=new THREE.Mesh(new THREE.PlaneGeometry(5,94),mats.dirt);road.rotation.x=-Math.PI/2;road.position.set(0,-.01,-2);scene.add(road);
+// A river crosses the main road; a wooden bridge makes the route passable.
+const waterMat=new THREE.MeshLambertMaterial({color:0x438eaa,transparent:true,opacity:.92});
+const river=new THREE.Mesh(new THREE.PlaneGeometry(100,5),waterMat);river.rotation.x=-Math.PI/2;river.position.set(0,.005,-4);scene.add(river);
+for(let i=0;i<24;i++){const x=-24+i*2.1;const r=box(x,.02,-1.2,.8,.08,.55,mats.stone);r.rotation.y=Math.random()*.25}
+const bridgeDeck=box(0,.22,-4,4.8,.35,7,mats.wood);
+for(let side of [-1,1]){for(let i=0;i<7;i++){box(side*2.05,.68,-7+i*1.0,.14,.9,.14,mats.wood)}for(let i=0;i<2;i++)box(side*2.05,.95,-5.8+i*3.6,.16,.13,3.8,mats.wood)}
+for(let i=0;i<12;i++){const x=-5.5+i;box(x,.02,-7.1,.22,.08,.5,mats.dirt)}
+const trees=[];for(let i=0;i<135;i++){const x=(Math.random()-.5)*94,z=(Math.random()-.5)*100;if(Math.abs(x)<4.2&&z>-48&&z<45)continue;if(Math.abs(x+14)<10&&Math.abs(z-31)<10)continue;if(Math.abs(x-14)<11&&Math.abs(z+36)<10)continue;trees.push(treeMesh(x,z))}
+function hut(x,z,roman=false){const g=new THREE.Group();g.position.set(x,0,z);const wall=roman?mats.stone:mats.wood,roof=roman?mats.roman:mats.roof;box(0,1,0,3.5,2.0,3.5,wall,g);const r=new THREE.Mesh(new THREE.ConeGeometry(2.8,1.8,4),roof);r.position.y=2.8;r.rotation.y=Math.PI/4;r.castShadow=true;g.add(r);box(0,.65,1.77,.8,1.3,.08,mats.wood,g);for(const side of [-1,1]){box(side*1.22,1.05,1.79,.42,.48,.06,roman?mats.roman:mats.german,g);box(side*1.22,1.05,1.74,.26,.31,.035,new THREE.MeshLambertMaterial({color:0xe3c987}),g)}for(let i=-1;i<=1;i++)box(i*1.4,.08,1.84,.13,2.12,.13,mats.wood,g);if(roman)box(0,2.03,1.79,3.55,.18,.18,mats.roman,g);scene.add(g);return g}
+const huts=[];
+// Roman fort at the southern end of the road
+for(let i=0;i<5;i++){const x=-14+(i%3)*4,z=30+Math.floor(i/3)*4;huts.push({x,z,mesh:hut(x,z,true)})}
+// Germanic village: huts are kept to the sides so the gate and exit lane stay clear.
+for(const [x,z] of [[9,-38],[21,-38],[9,-34],[21,-34],[9,-30]])huts.push({x,z,mesh:hut(x,z,false)})
+// Roman fort walls, gate and four watchtowers
+for(let x of [-21, -5]){box(x,1.1,29,.45,2.2,18,mats.stone);for(let z of [21,37]){const tower=box(x,1.8,z,1.6,3.6,1.6,mats.stone);box(x,3.8,z,2,.45,2,mats.roman)}}
+for(let z of [20,38])box(-13,1.1,z,16,.45,.45,mats.stone);
+box(-13,1.1,20,4,.45,.45,mats.roman);box(-13,2.5,20,.5,2.8,.5,mats.roman);
+// Germanic timber palisade with an open entrance, plus lookout platforms
+for(let x of [5,25])for(let i=0;i<13;i++){const z=-43+i*1.2;if(z>-37&&z<-32)continue;box(x,1.1,z,.28,2.2,.28,mats.wood)}
+for(let z of [-44,-29])for(let i=0;i<17;i++){const x=5+i*1.2;if(x>12&&x<18)continue;box(x,1.1,z,.28,2.2,.28,mats.wood)}
+for(let x of [5,25]){box(x,2.3,-43,2.1,.35,2.1,mats.wood);box(x,3,-43,1.5,1.1,1.5,mats.roof)}
+// Waystones and a small roadside watch post mark the journey between the peoples
+for(let z of [14,7,-14,-22]){box(-3.2,.7,z,.45,1.4,.45,mats.stone);box(-3.2,1.48,z,.7,.16,.7,mats.stone)}
+box(6,1.1,-15,3.5,2.2,3.5,mats.wood);const postRoof=new THREE.Mesh(new THREE.ConeGeometry(2.5,1.4,4),mats.roof);postRoof.position.set(6,2.9,-15);postRoof.rotation.y=Math.PI/4;scene.add(postRoof);
+// A few tents, crates and campfire stones add life to the clearings
+function tent(x,z,color){const m=new THREE.Mesh(new THREE.ConeGeometry(1.8,2.2,4),new THREE.MeshLambertMaterial({color}));m.position.set(x,1.1,z);m.rotation.y=Math.PI/4;m.castShadow=true;scene.add(m);box(x,0.45,z+1.1,1.2,.9,.12,mats.wood)}
+tent(-17,24,0x9a4939);tent(-9,24,0xb4a078);tent(9,-34,0x75844b);tent(18,-34,0x9b784e);
+for(let i=0;i<6;i++)box(-18+(i%3)*1.1,.25,25+Math.floor(i/3)*.8,.55,.5,.55,mats.wood);
+for(let i=0;i<8;i++){const a=i*Math.PI/4;const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(.22,0),mats.stone);stone.position.set(16+Math.cos(a)*.8,.13,-32+Math.sin(a)*.8);scene.add(stone)}
+
+// Low hills
+for(let i=0;i<16;i++){const hill=new THREE.Mesh(new THREE.SphereGeometry(1,8,6),new THREE.MeshLambertMaterial({color:i%2?0x80b65b:0x75a951}));hill.scale.set(Math.random()*6+3,Math.random()*1.7+1,Math.random()*4+2);let hx=(Math.random()-.5)*100,hz=(Math.random()-.5)*95;if(Math.abs(hx)<7&&hz>-48&&hz<45)hx= hx<0?-9:9;hill.position.set(hx,-.5,hz);hill.receiveShadow=true;scene.add(hill)}
+// Wildflowers and stones add many little color accents to the landscape.
+const flowerColors=[0xf0d65b,0xe78c72,0xe6e2cf,0xbba2df];
+for(let i=0;i<145;i++){const x=(Math.random()-.5)*75,z=(Math.random()-.5)*75;if(Math.abs(x)<3&&Math.abs(z)<12)continue;box(x,.11,z,.035,.22,.035,new THREE.MeshLambertMaterial({color:0x46783a}));const bloom=new THREE.Mesh(new THREE.SphereGeometry(.075,6,5),new THREE.MeshLambertMaterial({color:flowerColors[Math.floor(Math.random()*flowerColors.length)]}));bloom.position.set(x,.25,z);scene.add(bloom)}
+for(let i=0;i<70;i++){const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.15+Math.random()*.3,0),new THREE.MeshLambertMaterial({color:[0x85867c,0xa6a08f,0x716f66][i%3]}));rock.position.set((Math.random()-.5)*80,.08,(Math.random()-.5)*80);rock.scale.y=.5+Math.random()*.6;rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true;scene.add(rock)}
+const raycaster=new THREE.Raycaster();raycaster.far=7;
+const player={x:0,z:5,yaw:0,pitch:0};let started=false,team='',playerName='Abenteurer',wood=0,blocks=0,buildMode=false,chopTree=null,chopProgress=0,keys={},touch={forward:false,back:false,left:false,right:false},lookTouch={left:false,right:false},last=0,toastTimer;
+const blockMeshes=[];let preview=null;
+// Solide Hindernisse: Spieler kann nicht durch Bäume, Hütten oder gesetzte Blöcke laufen.
+function collidesAt(x,z){
+ const radius=.48;
+ for(const t of trees){const dx=x-t.position.x,dz=z-t.position.z;if(dx*dx+dz*dz<(radius+.72)*(radius+.72))return true;}
+ for(const h of huts){if(Math.abs(x-h.x)<2.15&&Math.abs(z-h.z)<2.15)return true;}
+ // Keep the player out of the main walls of both camps.
+ if(x>-21.8&&x<-20.0&&z>20&&z<38)return true;
+ if(x>-5.8&&x<-4.2&&z>20&&z<38)return true;
+ if(z>19.5&&z<20.8&&x>-21&&x<-5&&! (x>-15&&x<-11))return true;
+ if(z>37.5&&z<38.8&&x>-21&&x<-5)return true;
+ if(x>4.4&&x<5.6&&z>-44&&z<-28)return true;
+ if(x>24.4&&x<25.6&&z>-44&&z<-28)return true;
+ // Germanic palisade has a real, wide south exit aligned with the village path.
+ if(z>-30.0&&z<-28.7&&x>5&&x<25&&!(x>11.2&&x<18.8))return true;
+ if(z>-44.8&&z<-43.6&&x>5&&x<25&&!(x>11.2&&x<18.8))return true;
+ for(const b of blockMeshes){if(Math.abs(x-b.position.x)<radius+.5&&Math.abs(z-b.position.z)<radius+.5)return true;}
+ return false;
+}
+function tryMove(dx,dz){const nx=Math.max(-54,Math.min(54,camera.position.x+dx));const nz=Math.max(-54,Math.min(54,camera.position.z+dz));
+ // Axis-separated collision lets the player slide along walls and tree trunks.
+ if(!collidesAt(nx,camera.position.z))camera.position.x=nx;
+ if(!collidesAt(camera.position.x,nz))camera.position.z=nz;
+}
+function msg(t){const el=$('message');el.textContent=t;el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',2800)}
+function updateHud(){$('wood').textContent='🪵 Holz: '+wood;$('blocks').textContent='Baublöcke: '+blocks;$('mode').textContent='Modus: '+(buildMode?'Bauen':'Erkunden');$('buildmode').textContent='🧱 Baublöcke platzieren: '+(buildMode?'AN':'AUS');$('crosshair').style.display=started?'block':'none';$('placebtn').style.display=started&&buildMode?'block':'none'}
+function updateTreeBar(){const bar=$('treebar');if(!started||!chopTree||!mouseHeld||buildMode){bar.style.display='none';return}bar.style.display='block';const left=Math.max(0,1-chopProgress);$('treehp').textContent=Math.ceil(left*100)+' %';$('treefill').style.width=(left*100)+'%';$('treefill').classList.toggle('low',left<.35);$('treetime').textContent='Noch ca. '+(left*2.1).toFixed(1)+' Sekunden · Linksklick halten'}
+function start(t){if(started)return;started=true;team=t;playerName=$('playername').value.trim()||'Abenteurer';camera.position.set(t==='Römer'?-13:15,1.7,t==='Römer'?24:-31.5);player.yaw=t==='Römer'?0:Math.PI;player.pitch=0;camera.rotation.set(0,player.yaw,0,'YXZ');$('menu').style.display='none';$('hud').style.display='flex';$('tools').style.display='flex';$('who').textContent='👤 '+playerName;$('team').textContent=t==='Römer'?'🏛️ Römisches Team':'🌲 Germanisches Team';msg(t==='Römer'?'Du startest im römischen Kastell. Folge dem Weg nach Norden!':'Du startest im germanischen Dorf. Folge dem Weg nach Süden!');updateHud()}
+$('roman').onclick=()=>start('Römer');$('german').onclick=()=>start('Germanen');
+function requestLock(){if(started&&matchMedia('(pointer:fine)').matches&&document.pointerLockElement!==renderer.domElement)renderer.domElement.requestPointerLock?.()}
+renderer.domElement.addEventListener('click',e=>{if(!started)return;if(!buildMode&&matchMedia('(pointer:fine)').matches&&document.pointerLockElement!==renderer.domElement){requestLock();return}});
+document.addEventListener('pointerlockchange',()=>{});
+document.addEventListener('mousemove',e=>{if(started&&document.pointerLockElement===renderer.domElement){player.yaw-=e.movementX*.0024;player.pitch-=e.movementY*.0022;player.pitch=Math.max(-1.25,Math.min(1.25,player.pitch))}});
+document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if(e.key.toLowerCase()==='b'&&started)toggleBuild();if(e.key.toLowerCase()==='e'&&started)chopFromCenter()});
+document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+addEventListener('blur',()=>{keys={};touch={forward:false,back:false,left:false,right:false};lookTouch={left:false,right:false};mouseHeld=false;chopTree=null;updateTreeBar()});
+document.querySelectorAll('[data-move]').forEach(b=>{const k=b.dataset.move;const down=e=>{e.preventDefault();touch[k]=true},up=e=>{e.preventDefault();touch[k]=false};b.addEventListener('pointerdown',down);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,up))});
+document.querySelectorAll('[data-look]').forEach(b=>{const k=b.dataset.look;const down=e=>{e.preventDefault();lookTouch[k]=true},up=e=>{e.preventDefault();lookTouch[k]=false};b.addEventListener('pointerdown',down);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,up))});
+function toggleBuild(){buildMode=!buildMode;if(buildMode){if(!preview){preview=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),mats.preview);scene.add(preview)}preview.visible=true}else if(preview)preview.visible=false;updateHud();msg(buildMode?'Baumodus: Klicke auf den Boden, um einen Block zu platzieren.':'Erkundungsmodus.')}
+$('buildmode').onclick=toggleBuild;
+function lookRay(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);return raycaster}
+function chopFromCenter(){const r=lookRay();const hit=r.intersectObjects(trees,true).find(h=>{let o=h.object;while(o.parent&&o.parent!==scene)o=o.parent;return o.userData.type==='tree'});if(hit){let o=hit.object;while(o.parent&&o.parent!==scene)o=o.parent;chopTree=o;chopProgress=0;msg('Baum anvisiert. Halte Linksklick gedrückt, um ihn abzubauen.')}else msg('Sieh einen Baum an und drücke E oder halte Linksklick gedrückt.')}
+let mouseHeld=false;
+renderer.domElement.addEventListener('pointerdown',e=>{if(!started||e.button!==0)return;mouseHeld=true;if(buildMode){placeBlock();return}if(document.pointerLockElement===renderer.domElement){const r=lookRay();const hit=r.intersectObjects(trees,true).find(h=>{let o=h.object;while(o.parent&&o.parent!==scene)o=o.parent;return o.userData.type==='tree'});if(hit){let o=hit.object;while(o.parent&&o.parent!==scene)o=o.parent;chopTree=o;chopProgress=0}}else{const r=lookRay();const hit=r.intersectObjects(trees,true).find(h=>{let o=h.object;while(o.parent&&o.parent!==scene)o=o.parent;return o.userData.type==='tree'});if(hit){let o=hit.object;while(o.parent&&o.parent!==scene)o=o.parent;chopTree=o;chopProgress=0}}});
+addEventListener('pointerup',()=>{mouseHeld=false;chopTree=null;chopProgress=0;updateTreeBar()});
+function placeBlock(){if(!started||!buildMode)return;if(blocks<=0){msg('Du hast keine Baublöcke! Baue erst Holz ab.');return}raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObject(ground);if(!hits.length){msg('Ziele auf den Boden, um einen Block zu platzieren.');return}const p=hits[0].point;const x=Math.round(p.x),z=Math.round(p.z);if(Math.hypot(x-camera.position.x,z-camera.position.z)>7){msg('Zu weit weg! Geh näher an die Baustelle.');return}if(Math.abs(x)>54||Math.abs(z)>54){msg('Hier kannst du nicht bauen.');return}if(Math.hypot(x-camera.position.x,z-camera.position.z)<1.25){msg('Nicht direkt auf deinen Füßen bauen!');return}if(collidesAt(x,z)){msg('Hier ist kein Platz – dort steht schon etwas.');return}const mat=team==='Römer'?mats.stone:mats.block;const b=box(x,.5,z,1,1,1,mat);blockMeshes.push(b);blocks--;updateHud();msg('Block platziert! Noch '+blocks+' Baublöcke.')}
+$('placebtn').onclick=placeBlock;
+$('collect').onclick=()=>{if(!started)return;chopFromCenter()};
+$('help').onclick=()=>msg('WASD/Pfeiltasten laufen · Maus schauen (klicke zuerst ins Spiel) · Linksklick halten: Baum abbauen · Holz ergibt 3 Baublöcke · B aktiviert Platzieren · E anvisierten Baum auswählen.');
+const questions=[
+{q:'Wann lebten die Römer der Antike?',a:['Vor allem in der Antike','Nur im Mittelalter','Erst im 20. Jahrhundert'],c:0,info:'Rom entwickelte sich über viele Jahrhunderte. Das Weströmische Reich endete 476 n. Chr.'},
+{q:'Wann lebten germanische Gruppen in Europa?',a:['Nur im Jahr 1900','Schon in der Antike, auch zur Römerzeit','Erst nach 2000'],c:1,info:'Viele germanische Gruppen lebten in Mittel- und Nordeuropa und standen mit Rom in Kontakt.'},
+{q:'Was war der Limes?',a:['Eine römische Grenzanlage','Ein germanischer Gott','Ein römisches Schiff'],c:0,info:'Der Limes war ein System römischer Grenzbefestigungen und Kontrollanlagen.'},
+{q:'Wer war Arminius?',a:['Ein römischer Kaiser','Ein cheruskischer Anführer','Ein ägyptischer Pharao'],c:1,info:'Arminius war ein cheruskischer Anführer, der im Jahr 9 n. Chr. gegen römische Truppen kämpfte.'}];
+$('quizbtn').onclick=()=>{const q=questions[Math.floor(Math.random()*questions.length)],el=$('quiz');el.innerHTML='<h2>📜 Geschichtsfrage</h2><p>'+q.q+'</p>';q.a.forEach((a,i)=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>{el.innerHTML='<h2>'+(i===q.c?'Richtig! ✨':'Gute Übung!')+'</h2><p>'+q.info+'</p><button id="close">Zurück zum Spiel</button>';$('close').onclick=()=>el.style.display='none'};el.appendChild(b)});el.style.display='block'};
+function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000||0);last=now;if(started){let f=0,s=0;if(keys.w||keys.arrowup||touch.forward)f+=1;if(keys.s||keys.arrowdown||touch.back)f-=1;if(keys.a||keys.arrowleft||touch.left)s-=1;if(keys.d||keys.arrowright||touch.right)s+=1;if(lookTouch.left)player.yaw+=dt*1.8;if(lookTouch.right)player.yaw-=dt*1.8;if(f||s){const len=Math.hypot(f,s),speed=dt*5;const dx=(-Math.sin(player.yaw)*f+Math.cos(player.yaw)*s)/len*speed;const dz=(-Math.cos(player.yaw)*f-Math.sin(player.yaw)*s)/len*speed;tryMove(dx,dz)}camera.position.y=1.7+Math.sin(now*.009)*((f||s)?.035:0);camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
+ if(chopTree&&mouseHeld){chopProgress+=dt*.48;updateTreeBar();if(chopProgress>=1){scene.remove(chopTree);const ti=trees.indexOf(chopTree);if(ti>=0)trees.splice(ti,1);chopTree=null;chopProgress=0;mouseHeld=false;wood+=3;blocks+=3;updateHud();updateTreeBar();msg('🌳 Baum abgebaut! +3 Holz und +3 Baublöcke.')}}else updateTreeBar();
+ if(preview&&preview.visible){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hit=raycaster.intersectObject(ground);if(hit.length){preview.position.set(Math.round(hit[0].point.x),.5,Math.round(hit[0].point.z));preview.visible=true}else preview.visible=false}
+ }
+ renderer.render(scene,camera)}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+})();
+</script>
+</body>
+</html>
